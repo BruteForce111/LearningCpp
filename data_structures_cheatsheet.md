@@ -1,4 +1,4 @@
-#Differences between head.next and head->next
+# Differences between head.next and head->next
 
 In C++, the `.` and `->` operators are two ways of accessing members of a class or struct, but you use them in different situations:
 
