@@ -1,9 +1,7 @@
 # Summary of Basic Data Structures in C++
 > If you need to know in details about each Data Structure, pull up to the right below part
-
-> This is only for skimming through if you have already known in details about each data structure
-
-> but need to snap back the definitions, usage, etc...
+This is only for skimming through if you have already known in details about each data structure
+but need to snap back the definitions, usage, etc...
 
 Here’s a roadmap of the core C++ data structures you’ll use most—grouped by category, with a brief “what & why” for each. As you learn, you’ll discover when and how to choose among them.
 
