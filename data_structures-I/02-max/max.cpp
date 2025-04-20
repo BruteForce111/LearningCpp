@@ -13,6 +13,8 @@ using namespace std;  // bring std::cin, std::cout, std::string, etc. into scope
 //*****************************************************************************************************
 // Function declarations (prototypes)
 
+// [1] Why do we need declare template <typename T> for everytime we declare new functions
+
 // A generic function template to read two values of any type T
 template <typename T>
 void getData(T &a, T &b);
@@ -83,6 +85,7 @@ void getData(T &a, T &b) {
 void getData(char a[], char b[]) {
     cout << "\nEnter two c‑strings" << endl;
 
+    // [2]: when to use cin, when to use getline()
     cout << "First: ";
     cin.ignore();           // clear any leftover newline from previous input
     cin.getline(a, 100);    // read up to 99 chars + null terminator into a
@@ -164,4 +167,73 @@ void displayMax(T a, T b, T max) {
  First: apple
  Second: orange
  Max: orange
+*/
+
+
+/* 
+[1]: 
+
+Why do we need declare template <typename T> for everytime we declare new functions
+In C++, **every** function (and every class) that you want to parameterize by a template type needs its own `template<…>` prefix—there’s no “file‑level” or “block‑level” template parameter list that covers multiple free functions.  The grammar is literally
+
+```cpp
+template<typename T>
+ReturnType funcName(…);
+
+template<typename T>
+OtherReturn otherFuncName(…);
+
+// …etc.
+```
+
+and each `template<…>` applies **only** to the very next declaration.
+
+---
+
+### Why it works this way
+
+- **Self‑contained templates.**  A function template is its own entity.  Its template parameters (`T`, in your case) are part of its signature.  You can’t “open” a template parameter scope and drop in more functions without repeating the keyword.
+- **Clarity & modularity.**  By writing `template<typename T>` on each function, it’s immediately obvious which functions are generic.  If one day you want a non‑template overload or a different set of template parameters, you don’t have to untangle a shared declaration.
+
+---
+
+### Alternative: group under a class template
+
+If you really want to avoid repeating yourself, you *can* bundle them into a single class (or struct) template, where you only write `template<typename T>` once:
+
+```cpp
+template<typename T>
+struct Utils {
+    static void getData(T &a, T &b);
+    static T    findMax(T a, T b);
+    static void displayMax(T a, T b, T mx);
+};
+
+// definitions:
+
+template<typename T>
+void Utils<T>::getData(T &a, T &b) { }
+
+template<typename T>
+T Utils<T>::findMax(T a, T b) { }
+
+template<typename T>
+void Utils<T>::displayMax(T a, T b, T mx) { }
+
+// use it:
+int x, y;
+Utils<int>::getData(x,y);
+auto m = Utils<int>::findMax(x,y);
+Utils<int>::displayMax(x,y,m);
+```
+
+But for three free functions, most C++ code simply repeats the `template<typename T>` header each time. It’s the language’s design—and it keeps each template declaration explicit and self‑contained.
+
+
+
+[2]
+Use cin >> a; when you only need a single “word” (no spaces) and you’ve ensured your buffer is large enough (or you’re okay risking overflow).
+
+Use cin.getline(a, size); when you need to read a full line of text (possibly containing spaces) and want to guard against overrunning your buffer.
+
 */

@@ -119,6 +119,7 @@ public:
     // ----------------------------------
     // This lets you write c1 + c2
     // as shorthand for c1.operator+(c2)
+    // [2] Reasons why we need trailing const here
     Complex operator+(const Complex &other) const {
         // 'this->real' + other.real, and same for imag
         return Complex(real + other.real,
@@ -138,6 +139,7 @@ public:
     // ----------------------------------
     // A non‑member function needs access to private members,
     // so we declare it 'friend'.  That means it can see real & imag.
+    // [1]: this explain why this function takes 2 parameters while the operator+ takes 1 parameter
     friend Complex operator*(const Complex &a, const Complex &b) {
         // (a + bi)(c + di) = (ac − bd) + (ad + bc)i
         double r = a.real * b.real - a.imag * b.imag;
@@ -150,7 +152,8 @@ public:
     // ----------------------------------
     // Allows you to write: cout << c;
     // instead of c.display()
-    friend ostream& operator<<(ostream &out, const Complex &c) {
+    // You can change the variable name out to stream...
+    friend std::ostream& operator<<(std::ostream &out, const Complex &c) {
         out << c.real << " + " << c.imag << "i";
         return out;  // enable chaining: cout << c1 << c2;
     }
@@ -176,3 +179,111 @@ int main() {
 
     return 0;
 }
+
+
+/*
+[1]: Here’s what’s going on, broken into the two questions you’re really asking:
+
+---
+
+## 1. Why does `operator+` take one parameter, but `operator*` (as a free function) takes two?
+
+### Member vs. non‑member operators
+
+```cpp
+// As a member of Complex
+Complex Complex::operator+(const Complex &other) const {
+    // left‑operand is *this; right‑operand is other
+    return Complex(real + other.real,
+                   imag + other.imag);
+}
+```
+
+- **Member operator**  
+  - Syntax: `C C::operator+(const C& rhs) const`  
+  - The **left** operand is the object you call it on (`*this`), so you only need to pass the **right** operand as a parameter.  
+
+```cpp
+// As a free (friend) function
+friend Complex operator*(const Complex &a, const Complex &b) {
+    // a is the left‑operand, b is the right‑operand
+    double r = a.real * b.real - a.imag * b.imag;
+    double i = a.real * b.imag + a.imag * b.real;
+    return Complex(r, i);
+}
+```
+
+- **Non‑member (friend) operator**  
+  - Syntax: `C operator*(const C& a, const C& b)`  
+  - Because it’s not inside the class, **both** operands must be passed explicitly.
+
+You **could** also write multiplication as a member:
+
+```cpp
+Complex Complex::operator*(const Complex &other) const {
+    double r = real*other.real - imag*other.imag;
+    double i = real*other.imag + imag*other.real;
+    return Complex(r, i);
+}
+```
+
+Then it would only need one parameter (the right‑hand side) just like `operator+`.
+
+[2]: Why do we need trailing const at Complex operator+ function
+The trailing `const` in
+
+```cpp
+Complex operator+(const Complex &other) const { … }
+             //               ^^^^^
+```
+
+means:
+
+> **“This member function will not modify the object it’s called on.”**
+
+Concretely:
+
+1. **`this` becomes a `const Complex*` inside the function.**  
+   You can only call other `const` methods and read member variables; any attempt to write to `real` or `imag` will be a compiler error.
+
+2. **Allows you to add `const` or temporary `Complex` objects.**  
+   ```cpp
+   const Complex a{1,2};
+   Complex b{3,4};
+   Complex c = a + b;        // OK only if operator+ is const
+   Complex d = Complex{5,6} + b;  // OK: temporary a is const
+   ```
+
+3. **Signals your intent**—that addition doesn’t and shouldn’t change either operand.
+
+---
+
+### What happens if you omit it?
+
+If you wrote
+
+```cpp
+Complex operator+(const Complex &other) { … }  // *no* trailing const
+```
+
+then calls like these would **fail to compile**:
+
+```cpp
+const Complex a{1,2};
+Complex b{3,4};
+auto c = a + b;            // error: ‘operator+’ is not a const member
+
+auto d = Complex{5,6} + b; // error: temporary rvalue is const, can't call non-const member
+```
+
+because the compiler won’t let a non‑`const` method be called on a `const` or temporary object.  
+
+---
+
+**In short:**  
+The `const` after the parameter list
+
+- **Protects** your `Complex`’s internal state (you can’t accidentally modify `real` or `imag`),  
+- **Enables** usage with `const` instances and temporaries,  
+- **Documents** that “addition doesn’t change me.”
+*/

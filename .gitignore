@@ -1,42 +1,41 @@
 ### C++ ###
-# Prerequisites
+
+# GCC/clang prerequisites
 *.d
 
-# Compiled Object files
+# Compiled object files
+*.o
 *.slo
 *.lo
-*.o
 *.obj
 
-# Ignore all executables
-*
-!*.cpp
-!*.h
+# Executables / binaries
+*.exe
+*.out
+*.app
 
-# Precompiled Headers
+# Precompiled headers
 *.gch
 *.pch
 
-# Compiled Dynamic libraries
+# Shared / dynamic libraries
 *.so
 *.dylib
 *.dll
+
+# Static libraries
+*.a
+*.lib
+*.lai
+*.la
 
 # Fortran module files
 *.mod
 *.smod
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+# Build directories (if you use CMake, Meson, etc.)
+build/
+cmake-build-*/
 
-# Executables
-*.exe
-*.out
-*.app
-
-//****************************************************************************************************
-
+# VS Code workspace settings
 .vscode/
