@@ -1,7 +1,7 @@
 # Summary of Basic Data Structures in C++
-> If you need to know in details about each Data Structure, pull up to the right below part
-This is only for skimming through if you have already known in details about each data structure
-but need to snap back the definitions, usage, etc...
+> If you need to know in details about each Data Structure, pull up to the right below part.
+> This is only for skimming through if you have already known in details about each data structure
+> but need to snap back the definitions, usage, etc...
 
 Here’s a roadmap of the core C++ data structures you’ll use most—grouped by category, with a brief “what & why” for each. As you learn, you’ll discover when and how to choose among them.
 
@@ -620,3 +620,75 @@ and **not**:
 ```cpp
 head = head.next;  // error: `head` is not an object, it’s a pointer
 ```
+
+---
+# lvalue and rvalue, std::move()
+
+### 1. `std::move(n)`  
+- **What it is**: `std::move` is not a “real” move—it’s a cast that turns its argument into an _rvalue reference_ (`T&&`).  
+- **What happens**: In your ctor  
+  ```cpp
+  Person(std::string n, int a)
+    : name(std::move(n)), age(a) {}
+  ```  
+  you’ve taken the local `n` (an lvalue) and told the compiler “treat `n` as an rvalue(T&&) and something I won’t use again,” so `std::string`’s _move‑constructor_ can steal `n`’s internal buffer into `name`.  
+- **After the move**: `n` is left in a valid but unspecified (often empty) state.  
+
+```cpp
+std::string s = "hello";
+std::string t = std::move(s);
+// now t=="hello", and s==""  (or some valid but empty state)
+```
+
+---
+
+### 2. lvalue vs. rvalue  
+- **lvalue** (“locator value”): anything that has a stable address in memory and can appear on the **left** of `=`.  
+  ```cpp
+  int x = 5;    // x is an lvalue
+  x = 10;       // OK
+  ```  
+- **rvalue**: a temporary or “pure” value that you can’t assign into.  
+  ```cpp
+  int y = x + 3;   // (x+3) is an rvalue
+  (x+3) = 7;       // error: you can’t assign to an rvalue
+  ```  
+- **Why it matters**: move ctors and overloads distinguish `T&` (binds only to lvalues) from `T&&` (binds only to rvalues) so you can write efficient “steal” semantics.
+
+---
+
+### 3. `std::ostream` & `operator<<`  
+- **`std::ostream`**: the base type for all output streams (e.g. `std::cout`).  
+- **`operator<<`**: the insertion operator—overloaded so you can write things like  
+  ```cpp
+  std::cout << "Hello " << 123 << "\n";
+  ```  
+- **Why friend?**  
+  ```cpp
+  friend std::ostream& operator<<(std::ostream &out, const Person &p);
+  ```  
+  lets your `operator<<` access `Person`’s private members, then return the same `out` so calls can be chained.
+
+---
+
+### 4. Brace vs. Parenthesis Initialization  
+- **Braces** (`{…}`) are C++11’s _uniform initialization_, which:  
+  - Works for aggregates, single‑argument ctors, and prevents narrowing.  
+  - Avoids the “most vexing parse” (ambiguous function declarations).  
+- You **could** write  
+  ```cpp
+  Person alice("Alice", 30);
+  ```  
+  exactly the same—brace‑init is just the newer, more consistent idiom:
+
+```cpp
+Person alice{"Alice", 30};
+```
+
+---
+
+**In summary**:  
+- `std::move` casts to rvalue so you can “steal” resources.  
+- lvalues have identity/addressable; rvalues are temps.  
+- `std::ostream` + `operator<<` let you print your types.  
+- Brace‑init is the modern, unambiguous way to call ctors (though parens still work).
