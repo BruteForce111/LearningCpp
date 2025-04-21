@@ -692,3 +692,128 @@ Person alice{"Alice", 30};
 - lvalues have identity/addressable; rvalues are temps.  
 - `std::ostream` + `operator<<` let you print your types.  
 - Brace‑init is the modern, unambiguous way to call ctors (though parens still work).
+
+
+
+# When to use this in class
+
+Here are several real‑world situations in C++ where you **must** explicitly use `this->` (or at least `this`) to get correct code:
+
+---
+
+### 1. Disambiguating a member from a parameter or local variable  
+When a member and a local name collide, you need `this->` to say “the one on the object,” not the local:
+
+```cpp
+struct Foo {
+    int value;
+    void setValue(int value) {
+        // Without this->, “value = value;” just assigns the parameter to itself
+        this->value = value;  
+    }
+};
+```
+
+---
+
+### 2. Referring to dependent base‑class members in a template  
+Inside a class template that inherits from another template, unqualified names aren’t looked up in the base without `this->` (or a `using`):
+
+```cpp
+template<typename T>
+struct Base {
+    void greet() { /*…*/ }
+};
+
+template<typename T>
+struct Derived : Base<T> {
+    void hello() {
+        // error: greet is dependent, compiler won’t find it
+        // greet();        
+
+        // OK: tells the compiler “look for greet in this object’s bases”
+        this->greet();  
+    }
+};
+```
+
+---
+
+### 3. Capturing the current object in a lambda  
+If you want a lambda inside a member function to refer back to `this`, you must capture it explicitly:
+
+```cpp
+struct Button {
+    void onClick() {
+        // [this] makes 'this' available inside the lambda
+        auto cb = [this]() {
+            this->doAction();   // or just doAction(), but you needed the capture
+        };
+        registerCallback(cb);
+    }
+    void doAction();
+};
+```
+
+---
+
+### 4. Pointer‑to‑member operations  
+When you have a pointer‑to‑member (e.g. `int Foo::*pm`), you use `this->*pm` to apply it:
+
+```cpp
+struct Foo {
+    int x, y;
+    void print(int Foo::*pm) {
+        std::cout << this->*pm << "\n";  
+    }
+};
+```
+
+---
+
+### 5. Method chaining by returning `*this` or `this`  
+If you return the object itself to chain calls, you explicitly return `*this` (or `this` for pointers):
+
+```cpp
+struct Builder {
+    Builder& setA(int a)   { this->a = a;   return *this; }
+    Builder& setB(int b)   { this->b = b;   return *this; }
+    Foo     build() const  { return Foo(a,b); }
+private:
+    int a, b;
+};
+```
+
+---
+
+### 6. Overloaded operators where both parameters are implicit  
+Inside a member `operator+=`, you might still refer to `*this`:
+
+```cpp
+struct Vec {
+    int x,y;
+    Vec& operator+=(const Vec& o) {
+        this->x += o.x;
+        this->y += o.y;
+        return *this;
+    }
+};
+```
+
+---
+
+### 7. Returning the raw pointer to the current object  
+Sometimes APIs expect you to hand out `this` directly:
+
+```cpp
+struct Node {
+    Node* getPtr() { return this; }
+};
+```
+
+---
+
+> **Key takeaway:**  
+> - **`this->member`** is required when the compiler can’t unambiguously find a member (shadowing or dependent base).  
+> - **Capturing `this`** in lambdas requires `[this]`.  
+> - Everywhere else `this->` is optional—`foo()` and `this->foo()` are equivalent if `foo` is unambiguous.
