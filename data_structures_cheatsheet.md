@@ -117,13 +117,6 @@ auto it = std::find(v.begin(), v.end(), 42);
 
 ---
 
-### Getting Started  
-1. **Play with `std::vector` and `std::string`**—they’re the workhorses of C++.  
-2. **Try a `std::map` vs. `std::unordered_map`** to see differences in lookup speed.  
-3. **Use `std::list` or `std::forward_list`** when you need constant‑time insertion/deletion in the middle.
-
-As you write more code, you’ll naturally reach for the right container. Each one has trade‑offs in performance (time and memory) and interface—so checking the reference (e.g. cppreference.com) becomes second nature. Good luck on your C++ journey!
-
 
 
 # Verbosity of Basic Data Structures in C++
@@ -194,20 +187,93 @@ int main() {
 ---
 
 ### 4. `std::vector` (Dynamic Array)  
-```cpp
-#include <iostream>
-#include <vector>
-int main() {
-    std::vector<int> v;
-    v.push_back(10);
-    v.push_back(20);
-    v.push_back(30);
+Here’s a rundown of the most common things you can do with a `std::vector<T>` in C++:
 
-    // random access and iteration
-    for(size_t i = 0; i < v.size(); ++i)
-        std::cout << v[i] << " ";    // 10 20 30
-    std::cout << "\n";
-}
+---
+
+#### 1. Element Access  
+```cpp
+vector<int> v = {10,20,30};
+
+// by index (no bounds checking)
+int x = v[1];        // x = 20
+
+// with bounds checking (throws if out of range)
+int y = v.at(2);     // y = 30
+
+// first / last element
+int f = v.front();   // f = 10
+int b = v.back();    // b = 30
+
+// raw pointer to underlying array (C‑style)
+int* data = v.data();
+```
+
+---
+
+#### 2. Capacity Queries & Management  
+```cpp
+v.size();       // number of elements   → 3
+v.empty();      // true if size()==0    → false
+v.capacity();   // how many it can hold before reallocating
+v.reserve(100);// pre‑allocate space for 100 elements
+v.shrink_to_fit(); // ask to reduce capacity to match size
+```
+
+---
+
+#### 3. Modifiers  
+```cpp
+v.push_back(40);        // append 40
+v.pop_back();           // remove last element
+
+// insert before the iterator position:
+v.insert(v.begin()+1, 15);  // v = {10,15,20,30,40}
+
+// construct–in‑place (avoiding copies):
+v.emplace(v.begin()+2, 17); // v = {10,15,17,20,30,40}
+v.emplace_back(50);         // same as push_back(50)
+
+// erase a single element or a range:
+v.erase(v.begin());         // remove first
+v.erase(v.begin()+2, v.begin()+4); // remove two elements
+
+v.clear();      // remove all elements
+v.resize(5);    // change size to 5 (truncates or fills with default T{})
+v.swap(other);  // swap contents with another vector
+```
+
+---
+
+#### 4. Iteration  
+```cpp
+// classic for
+for (size_t i = 0; i < v.size(); ++i)
+    cout << v[i] << "\n";
+
+// range‑based for
+for (int val : v)
+    cout << val << "\n";
+
+// with iterators
+for (auto it = v.begin(); it != v.end(); ++it)
+    cout << *it << "\n";
+
+// reverse
+for (auto it = v.rbegin(); it != v.rend(); ++it)
+    cout << *it << "\n";
+```
+
+---
+
+#### 5. Integration with `<algorithm>`  
+Almost anything in `<algorithm>` works on `vector` iterators:
+```cpp
+#include <algorithm>
+
+sort(v.begin(), v.end());
+auto it = find(v.begin(), v.end(), 20);  // returns iterator or v.end()
+reverse(v.begin(), v.end());
 ```
 
 ---
@@ -907,4 +973,159 @@ std::for_each(items.begin(), items.end(), [](const auto& [name, count]) {
 
 ---
 
-Want examples for structured bindings in lambdas or range-based algorithms too?
+# Binary Search
+In C++’s `<algorithm>` (and in C++20’s `<ranges>`), the “binary-search family” that works on **sorted ranges** consists of four main routines:
+
+```cpp
+std::binary_search(begin, end, value);        // returns bool
+std::lower_bound(begin, end, value);          // first ≥ value
+std::upper_bound(begin, end, value);          // first >  value
+std::equal_range(begin, end, value);          // pair {lower_bound, upper_bound}
+```
+
+and two more helpers in C++20:
+
+```cpp
+std::partition_point(begin, end, pred);       // first for which pred(elem)==false
+std::ranges::* versions with projections, comparators, etc.
+```
+
+Below is a quick cheat-sheet for each, with signatures, semantics, and tiny examples.
+
+---
+
+## 1. `binary_search`
+
+```cpp
+bool binary_search( ForwardIt first, ForwardIt last,
+                    const T& value,
+                    Compare comp = Compare{} );
+```
+
+- **What it does**: tells you if `value` **exists** in the sorted range `[first,last)`.  
+- **Note**: internally does a lower_bound + check.  
+- **Example**:
+  ```cpp
+  vector<int> v = {1,3,5,7,9};
+  bool has5 = binary_search(v.begin(), v.end(), 5);  // true
+  bool has2 = binary_search(v.begin(), v.end(), 2);  // false
+  ```
+
+---
+
+## 2. `lower_bound`
+
+```cpp
+ForwardIt lower_bound( ForwardIt first, ForwardIt last,
+                       const T& value,
+                       Compare comp = Compare{} );
+```
+
+- **Returns** the **first iterator** `it` in `[first,last)` such that  
+  `!comp(*it, value)` → i.e. `*it >= value`.  
+- If all elements are `< value`, returns `last`.  
+- **Use** when you need the insertion point for `value` without discarding equal elements.  
+- **Example**:
+  ```cpp
+  vector<int> v = {2,4,4,4,6,8};
+  auto it = lower_bound(v.begin(), v.end(), 4);
+  // it points to the first 4 (index 1)
+  int idx = it - v.begin();  // 1
+  ```
+
+---
+
+## 3. `upper_bound`
+
+```cpp
+ForwardIt upper_bound( ForwardIt first, ForwardIt last,
+                       const T& value,
+                       Compare comp = Compare{} );
+```
+
+- **Returns** the **first iterator** `it` in `[first,last)` such that  
+  `comp(value, *it)` → i.e. `*it > value`.  
+- If no element is `> value`, returns `last`.  
+- **Use** when you want the end of the “equal range”—i.e. the insert position **after** any existing `value`s.  
+- **Example**:
+  ```cpp
+  vector<int> v = {2,4,4,4,6,8};
+  auto it = upper_bound(v.begin(), v.end(), 4);
+  // it points to the element 6 (index 4)
+  int idx = it - v.begin();  // 4
+  ```
+
+---
+
+## 4. `equal_range`
+
+```cpp
+pair<ForwardIt,ForwardIt>
+equal_range( ForwardIt first, ForwardIt last,
+             const T& value,
+             Compare comp = Compare{} );
+```
+
+- **Returns** `{ lower_bound(...), upper_bound(...) }`.  
+- Represents the **sub‐range** of elements equal to `value`.  
+- **Example**:
+  ```cpp
+  vector<int> v = {2,4,4,4,6,8};
+  auto [lo, hi] = equal_range(v.begin(), v.end(), 4);
+  // lo points at index 1, hi at index 4
+  int count = hi - lo;  // 3 copies of 4
+  ```
+
+---
+
+## 5. `partition_point` (C++11)
+
+```cpp
+ForwardIt partition_point( ForwardIt first, ForwardIt last,
+                           UnaryPredicate p );
+```
+
+- **Precondition**: The range `[first,last)` is partitioned by `p`—i.e. all `x` with `p(x)==true` come **before** all with `p(x)==false`.  
+- **Returns** the first `it` where `p(*it)` is `false`.  
+- **Use** this to find the boundary of a sorted/partitioned range under an arbitrary predicate (not necessarily comparing to a single `value`).  
+- **Example**:
+  ```cpp
+  vector<int> v = {1,2,3,4,5,6,7,8};
+  // Split at 5: everything <5 is true, >=5 is false
+  auto it = partition_point(v.begin(), v.end(),
+                            [](int x){ return x < 5; });
+  // it points to the first element >= 5 (i.e. 5)
+  ```
+
+---
+
+## 6. C++20 `<ranges>` overloads
+
+In C++20 you get **ranges** versions that accept:
+
+- Views (`std::views::filter`, `std::views::transform`, etc.)  
+- **Projections** and **custom comparators** more cleanly:  
+  ```cpp
+  using std::ranges::lower_bound;
+  // example: sort people by age, then search by person.age
+  struct Person { string name; int age; };
+  vector<Person> team = {...};
+  ranges::sort(team, {}, &Person::age);
+  Person target{"",30};
+  auto it = lower_bound(team, target, {},
+                        &Person::age);
+  ```
+
+---
+
+### When to use each
+
+| Need                                           | Algorithm             |
+|------------------------------------------------|-----------------------|
+| Test if `value` exists in sorted range         | `binary_search`       |
+| First position to insert **before** any ≥ val  | `lower_bound`         |
+| First position to insert **after** all == val  | `upper_bound`         |
+| Get both lower+upper in one call               | `equal_range`         |
+| Split a partitioned range on predicate         | `partition_point`     |
+
+All of these run in **O(log N)** on random-access iterators (and **O(N)** if only forward iterators), so they’re very efficient on large sorted arrays or vectors.
