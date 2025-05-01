@@ -19,7 +19,7 @@ These are the atoms of your programs—simple, fast, and directly supported by t
 
 ## 2. Derived Types  
 Built from the fundamentals to let you build more complex structures.  
-- **Arrays**: `int a[10];` —​contiguous fixed‑size collection  
+- **Arrays**: `int a[10];` —​contiguous fixed‑size collections
 - **Pointers**: `int* p;` —​holds the address of another object  
 - **References**: `int& r = a[i];` —​an alias to another variable  
 - **Functions & function pointers**: define and pass around behavior  
