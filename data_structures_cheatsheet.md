@@ -1129,3 +1129,178 @@ In C++20 you get **ranges** versions that accept:
 | Split a partitioned range on predicate         | `partition_point`     |
 
 All of these run in **O(log N)** on random-access iterators (and **O(N)** if only forward iterators), so they’re very efficient on large sorted arrays or vectors.
+
+
+---
+
+# Heap in <algorithm> library
+Here are some concrete examples of using the `<algorithm>` heap APIs—`make_heap`, `push_heap`, `pop_heap`, and `sort_heap`—with different comparators:
+
+
+
+## 1. Default “max-heap” (uses `less<>`)
+
+By default, `make_heap` and its friends use `std::less` (i.e. `operator<`) so that the **largest** element is at `front()`:
+
+```cpp
+#include <algorithm>
+#include <vector>
+#include <iostream>
+using namespace std;
+
+int main() {
+    vector<int> v = {5, 1, 7, 3, 9, 2};
+    
+    // Build a max-heap in v
+    make_heap(v.begin(), v.end());  
+    // Now v.front() == 9
+    cout << "Top of max-heap: " << v.front() << "\n";
+
+    // Pop the top
+    pop_heap(v.begin(), v.end());   // swaps 9 to the back, re-heapifies [begin,end-1)
+    cout << "Popped value: " << v.back() << "\n";  // prints 9
+    v.pop_back();                   // actually remove it
+
+    // Push a new value
+    v.push_back(8);
+    push_heap(v.begin(), v.end());  // re-heapifies to include 8
+    cout << "New top: " << v.front() << "\n";       // now 8
+
+    // Sort the heap (destroys the heap property, yields ascending sort)
+    sort_heap(v.begin(), v.end());
+    cout << "Sorted: ";
+    for (int x : v) cout << x << " ";  // 1 2 3 5 7 8
+    cout << "\n";
+}
+```
+
+---
+
+## 2. Min-heap via `greater<>`
+
+If you want the **smallest** element at `front()`, pass `greater<>` everywhere:
+
+```cpp
+#include <algorithm>
+#include <vector>
+#include <functional>
+#include <iostream>
+using namespace std;
+
+int main() {
+    vector<int> v = {5, 1, 7, 3, 9, 2};
+
+    // Build a min-heap
+    make_heap(v.begin(), v.end(), greater<>());  
+    // Now v.front() == 1
+    cout << "Top of min-heap: " << v.front() << "\n";
+
+    // Pop the top
+    pop_heap(v.begin(), v.end(), greater<>());  
+    cout << "Popped value: " << v.back() << "\n";  // prints 1
+    v.pop_back();
+
+    // Push new
+    v.push_back(0);
+    push_heap(v.begin(), v.end(), greater<>());  
+    cout << "New top: " << v.front() << "\n";     // now 0
+
+    sort_heap(v.begin(), v.end(), greater<>());   // sorts descending
+    cout << "Sorted descending: ";
+    for (int x : v) cout << x << " ";  // 9 7 5 3 2 0
+    cout << "\n";
+}
+```
+
+---
+
+## 3. Heap of `pair<int,string>`, lexicographic by frequency then word
+
+Say you want a “max-heap” of `(frequency, word)` so that highest frequency comes first, and for ties lexicographically smaller word comes first. You can use a custom comparator:
+
+```cpp
+#include <algorithm>
+#include <vector>
+#include <string>
+#include <iostream>
+using namespace std;
+
+// Compare so that:
+//   higher freq → comes first
+//   if freq equal, lexicographically smaller word → comes first
+bool myComp(const pair<int,string>& a,
+            const pair<int,string>& b) {
+    if (a.first != b.first)
+        return a.first < b.first;            // max-heap on freq
+    return a.second > b.second;              // min-heap on word
+}
+
+int main() {
+    vector<pair<int,string>> v = {
+        {3,"apple"}, {5,"orange"}, {5,"banana"}, {2,"pear"}
+    };
+
+    // Build our custom max-heap
+    make_heap(v.begin(), v.end(), myComp);
+    // Top is (5,"banana")? or (5,"apple")? We want (5,"banana")? Let's see:
+    // Since for equal freq=5, we do a.second > b.second → "banana" > "orange"? yes
+    // So the larger string is treated as “smaller” in our heap-comparison → ends up at front
+    cout << "Top: (" 
+         << v.front().first << "," 
+         << v.front().second << ")\n";  
+
+    // Pop it
+    pop_heap(v.begin(), v.end(), myComp);
+    auto best = v.back();
+    cout << "Popped: (" << best.first << "," << best.second << ")\n";
+}
+```
+
+---
+
+## 4. Partial heapify / subrange
+
+You can heapify only part of a vector.  For example, say you want the 10 largest items out of a big vector `data`:
+
+```cpp
+vector<int> data = /* ... lots of data ... */;
+
+// Create a max-heap of the first 10 items
+make_heap(data.begin(), data.begin()+10);
+
+// For each remaining element, if it’s larger than heap‐top, replace & re‐heapify
+for (auto it = data.begin()+10; it != data.end(); ++it) {
+    if (*it > data.front()) {
+        pop_heap(data.begin(), data.begin()+10);  // move old smallest of top-10 to position 9
+        data[9] = *it;                            // overwrite it
+        push_heap(data.begin(), data.begin()+10);// re‐heapify top-10
+    }
+}
+// Now data[0..9] contains the 10 largest elements, unordered
+sort_heap(data.begin(), data.begin()+10);       // sort them if you want
+```
+
+---
+
+### Recap of function signatures
+
+```cpp
+make_heap(    RandomIt first, RandomIt last,
+              Compare comp = Compare() );
+
+push_heap(    RandomIt first, RandomIt last,
+              Compare comp = Compare() );
+
+pop_heap(     RandomIt first, RandomIt last,
+              Compare comp = Compare() );
+
+sort_heap(    RandomIt first, RandomIt last,
+              Compare comp = Compare() );
+```
+
+- `make_heap` builds a heap in-place.  
+- `push_heap` assumes `[first,last-1)` is a heap, and “pushes” the new element at `last-1` into the heap.  
+- `pop_heap` moves the heap‐top to `last-1`, and re‐heapifies `[first,last-1)`.  
+- `sort_heap` repeatedly does `pop_heap`, yielding a sorted range.
+
+By choosing `std::less<>` (the default) you get a **max-heap**, and by using `std::greater<>` (or your own comparator) you can invert or customize the ordering.
