@@ -20,7 +20,7 @@ public:
 };
 
 template<typename T>
-Dyad<T>::Dyad(T val1, T val2) : (val1(val1), val2(val2)){}
+Dyad<T>::Dyad(T val1, T val2) : val1(val1), val2(val2) {}
 
 template<typename T>
 T Dyad<T>::getFirst() const {
