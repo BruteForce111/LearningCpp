@@ -26,7 +26,8 @@ private:
 
 public:
     // Constructor: allocate an array of size 'cap' (minimum 2), start empty
-    AList(int cap = 5);
+    AList(int cap = 5); // This means if no capacity is provided, the list will default to a capacity of 5.
+                        // if no initialization, you must explicitly provide the capacity when creating an AList object.
 
     // Destructor: free the dynamic array
     ~AList();

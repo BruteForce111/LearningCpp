@@ -2,7 +2,7 @@
 #define PRACTICE_H
 
 #include <iostream>
-#include <new>
+using namespace std;
 
 template <typename T>
 class AList {
@@ -14,32 +14,46 @@ private:
     bool _resize();
 
 public:
-    AList(int cap); // should I put cap = 5 here
+    // Constructor
+    AList(int cap =  5);
 
+    // Destructor
     ~AList();
 
+    // insertFront
     bool insertFront(const T &dataIn);
 
-    bool insertAtIndex(const T &dataIn, int index);
-
+    //insertBack
     bool insertBack(const T &dataIn);
 
+    //insertAtIndex
+    bool insertAtIndex(const T &dataIn, int index);
+
+    //display
+    // display all elements in AList, return false if empty
     bool display() const;
 
+    //getSmallest
     bool getSmallest(T &dataOut) const;
 
+    //Accessor: getCapacity
     int getCapacity() const;
+
+    //Accessor: getNumValues
     int getNumValues() const;
-    
-    //Checks;
+
+    //check Full or Empty
     bool isFull() const;
     bool isEmpty() const;
 };
 
-//constructor
+//Function implementation
+
+//Constructor
 template <typename T>
-AList<T>::AList(int cap){
-    if (cap < 2) cap = 2;
+AList<T>::AList (int cap) {
+    if (cap < 2)
+        cap = 2;
     capacity = cap;
     numValues = 0;
     list = new T[capacity];
@@ -47,57 +61,68 @@ AList<T>::AList(int cap){
 
 //Destructor
 template <typename T>
-AList<T>::~AList(){
+AList<T>::~AList (){
     delete[] list;
-    list = nullptr; // avoid dangling pointer
-    capacity = 0;
+    list = nullptr;
     numValues = 0;
+    capacity = 0;
 }
 
-//Resize
+// resize function
 template <typename T>
 bool AList<T>::_resize(){
     bool success = false;
-    int newCapacity = capacity * 2;
-    T *newList = new (std::nothrow) T[newCapacity];
-
+    int newCapacity = 2 * capacity;
+    T* newList = new T[newCapacity];
     if (newList){
-        for (int i = 0; i < newCapacity; i++){
+        for (int i = 0; i < numValues; i++){
             newList[i] = list[i];
         }
-
         delete[] list;
         list = newList;
         capacity = newCapacity;
-        success = false;
+        success = true;
     }
     return success;
 }
 
-//insertFront
+// insertFront
 template <typename T>
-bool AList<T>::insertFront(const T &dataIn) {
-    bool success = false;
+bool AList<T>::insertFront (const T &dataIn){
+    bool success = true;
     if (numValues == capacity)
         success = _resize();
     
-    if (success){
+    if (success) {
         for (int i = numValues; i > 0; i--){
             list[i] = list[i-1];
         }
         list[0] = dataIn;
         numValues++;
     }
-    
     return success;
-
 }
 
-//insertAtIndex
+// insertBack
+template <typename T>
+bool AList<T>::insertBack (const T &dataIn){
+    bool success = true;
+    if (numValues == capacity){
+        success = _resize();
+    }
+    if (success){
+        list[numValues] = dataIn;
+        numValues++;   
+    }
+    return success;
+}
+
+// insertAtIndex
 template <typename T>
 bool AList<T>::insertAtIndex(const T &dataIn, int index){
     bool success = false;
-    if ((index >= 0) && (index <= numValues)){
+    
+    if (index >= 0 && index <= numValues){
         success = true;
         if (numValues == capacity){
             success = _resize();
@@ -107,35 +132,23 @@ bool AList<T>::insertAtIndex(const T &dataIn, int index){
                 list[i] = list[i-1];
             }
             list[index] = dataIn;
-            numValues++;
+            numValues++;    
         }
     }
     return success;
 }
 
-//insertBack
-template <typename T>
-bool AList<T>::insertBack(const T &dataIn){
-    bool success = false;
-    if (numValues == capacity)
-        success = _resize();
-
-    if(success){
-        list[numValues] = dataIn;
-        numValues++;
-    }
-    return success;
-}
 
 //display
+// display all elements in AList, return false if empty
 template <typename T>
-bool AList<T>::display() const{
+bool AList<T>::display() const {
     bool success = false;
     if (numValues > 0){
-        for (int i = 0; i < numValues; i++){
-            std::cout << "[" << i << "] " << list[i] << std::endl;
-        }
         success = true;
+        for (int i = 0; i < numValues; i++){
+            cout << "[" << i << "] " << list[i] << endl;
+        }
     }
     return success;
 }
@@ -143,43 +156,42 @@ bool AList<T>::display() const{
 //getSmallest
 template <typename T>
 bool AList<T>::getSmallest(T &dataOut) const{
-    bool success;
+    bool success = false;
     if (numValues > 0){
+        success = true;
         dataOut = list[0];
         for (int i = 1; i < numValues; i++){
-            if (list[i] < dataOut)
+            if (list[i] < dataOut) {
                 dataOut = list[i];
+            }
         }
-        success = true;
     }
     return success;
 }
 
-//getCapacity
+//Accessor: getCapacity
 template <typename T>
 int AList<T>::getCapacity() const {
     return capacity;
 }
 
-//getNumValues
+//Accessor: getNumValues
 template <typename T>
-int AList<T>::getNumValues() const {
+int AList<T>::getNumValues() const{
     return numValues;
 }
 
-//isFull
+//check Full or Empty
 template <typename T>
-bool AList<T>::isFull() const {
+bool AList<T>::isFull() const{
     return numValues == capacity;
 }
 
-//isEmpty
 template <typename T>
-bool AList<T>::isEmpty() const {
+bool AList<T>::isEmpty() const{
     return numValues == 0;
 }
 
+//
+
 #endif // PRACTICE_H
-
-
-
