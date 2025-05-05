@@ -84,6 +84,7 @@ bool AList<T>::_resize() {
     bool success = false;
     int newCapacity = capacity * 2;                       // double the capacity
     T *newList = new (std::nothrow) T[newCapacity];       // allocate, or nullptr on failure
+                                                          // nothrow usually used with new[] to avoid exceptions
 
     if (newList) {                                        // if allocation succeeded
         for (int i = 0; i < numValues; ++i)
