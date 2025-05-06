@@ -73,7 +73,7 @@ template <typename T>
 bool AList<T>::_resize(){
     bool success = false;
     int newCapacity = 2 * capacity;
-    T* newList = new T[newCapacity];
+    T* newList = new (std::nothrow) T[newCapacity];
     if (newList){
         for (int i = 0; i < numValues; i++){
             newList[i] = list[i];

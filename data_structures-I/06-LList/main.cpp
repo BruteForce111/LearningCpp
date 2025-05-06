@@ -15,50 +15,57 @@ using namespace std;
 
 //*****************************************************************************************************
 
+// Function to display the linked list and its state
 void displayLList(bool success, LList<short> &shortList);
+
+// Function to check if the linked list is empty or full
 void checkState(LList<short> &shortList);
 
 //*****************************************************************************************************
 
 int main() {
-    LList<short> shortList;
-    bool success;
-    short num;
+    LList<short> shortList; // Create a linked list of short integers
+    bool success;           // To store the success status of operations
+    short num;              // Variable to hold data for operations
 
+    // Check and display the initial state of the list
     checkState(shortList);
 
+    // Insert 5 elements into the list
     for (int i = 0; i < 5; ++i) {
-        num = 10 * (i + 1);
-        success = shortList.insert(num);
+        num = 10 * (i + 1); // Generate numbers 10, 20, 30, 40, 50
+        success = shortList.insert(num); // Insert the number into the list
 
         if (success)
             cout << "inserted " << num << endl;
 
-        displayLList(success, shortList);
+        displayLList(success, shortList); // Display the list after each insertion
     }
 
     cout << endl;
 
+    // Retrieve (search for) the first two elements (10 and 20)
     for (int i = 0; i < 2; ++i) {
-        num = 10 * (i + 1);
-        success = shortList.retrieve(num);
+        num = 10 * (i + 1); // Numbers 10 and 20
+        success = shortList.retrieve(num); // Check if the number exists in the list
 
         if (success)
             cout << "retrieved " << num << endl;
 
-        displayLList(success, shortList);
+        displayLList(success, shortList); // Display the list after each retrieval
     }
 
     cout << endl;
 
+    // Remove all elements from the list in reverse order (50, 40, ..., 10)
     for (int i = 0; i < 5; ++i) {
-        num = (10 * (5 - i));
-        success = shortList.remove(num);
+        num = (10 * (5 - i)); // Numbers 50, 40, 30, 20, 10
+        success = shortList.remove(num); // Remove the number from the list
 
         if (success)
             cout << "removed " << num << endl;
 
-        displayLList(success, shortList);
+        displayLList(success, shortList); // Display the list after each removal
     }
 
     return 0;
@@ -66,16 +73,16 @@ int main() {
 
 //*****************************************************************************************************
 
+// Display the linked list and its state
 void displayLList(bool success, LList<short> &shortList) {
-    short front,
-        rear;
-    int numVal;
+    short front, rear; // Variables to hold the front and rear values
+    int numVal;        // Variable to hold the number of values in the list
 
     if (success) {
-        shortList.display();
-        shortList.viewFront(front);
-        shortList.viewRear(rear);
-        numVal = shortList.getNumValues();
+        shortList.display(); // Display the contents of the list
+        shortList.viewFront(front); // Get the front value
+        shortList.viewRear(rear);   // Get the rear value
+        numVal = shortList.getNumValues(); // Get the number of values in the list
 
         if (numVal > 0)
             cout << "numValues: " << numVal
@@ -85,11 +92,12 @@ void displayLList(bool success, LList<short> &shortList) {
             cout << "numValues: " << numVal << endl;
     }
 
-    checkState(shortList);
+    checkState(shortList); // Check if the list is empty or full
 }
 
 //*****************************************************************************************************
 
+// Check if the linked list is empty or full
 void checkState(LList<short> &shortList) {
     if (shortList.isFull())
         cout << "\nlist is full\n\n";
