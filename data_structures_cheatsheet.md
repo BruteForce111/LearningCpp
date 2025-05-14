@@ -1613,3 +1613,167 @@ s.reserve(100);                     // capacity 100, size still 20
 * **`T arr[N]`** is the simplest, raw, compile‑time array.
 * For richer functionality—size queries, safe access, automatic memory management—reach for **STL containers** like `std::array`, `std::vector`, or `std::string`.
 
+---
+
+# How to use overloaded operator< and operator> to indicate min_heap, max_heap
+
+You’ve got the right intuition: **what really matters is that the combination of the operator name (`<` vs. `>`) and the test inside its body together produce the ordering you want**.  Here’s the breakdown:
+
+---
+
+### 1) Overloading `operator<` for a **min-heap**
+
+By default,
+
+```cpp
+priority_queue<T> pq;
+```
+
+is a **max-heap**—it keeps the “largest” element (by `operator<`) at the top.  In other words, whenever it needs to compare two elements `a` and `b`, it asks:
+
+```cpp
+if (a < b)  // using your operator< 
+    // then b is considered “larger” → stays above a
+```
+
+To force the “smallest-`f`” to be considered the “largest” element in this sense, you reverse the logic:
+
+```cpp
+struct Node {
+    int f;
+    bool operator<(Node const& o) const {
+        // we want “the smaller f” to behave as if it’s “larger” in a max-heap
+        return f > o.f;  
+        //  └── compare reversed ──┘
+    }
+};
+```
+
+* If `a.f = 5` and `b.f = 10`, then `a < b` returns `5 > 10` → `false`.
+  That tells the heap “`a` is not less than `b`,” so `a` is “bigger” and floats to the top.
+* Conversely, if `a.f = 2` and `b.f = 10`, then `a < b` returns `2 > 10` → `false` again? Wait… actually:
+
+  * **Case `a.f=2, b.f=10`**:
+    `a < b` returns `2 > 10` → `false`
+    So `a` is again “bigger” → top (correct: 2 is smaller so we want it first).
+
+  * **Case `a.f=10, b.f=2`**:
+    `a < b` returns `10 > 2` → `true`
+    So `a` is “less” than `b`, and thus the heap will keep `b` above `a` (again making `2` come out first).
+
+All in all, reversing the test inside `operator<` makes the *smallest* `f` behave as the “largest” element to the default max-heap machinery.
+
+---
+
+### 2) Overloading `operator>` for a **min-heap**
+
+Alternatively, you can keep the normal “small-is-small” test inside your class, but tell the priority queue to use `greater<T>`:
+
+```cpp
+struct Node {
+    int f;
+    // normal sense: a > b if a.f is really greater than b.f
+    bool operator>(Node const& o) const { 
+        return f > o.f; 
+    }
+};
+
+// then:
+priority_queue<Node, vector<Node>, greater<Node>> open;
+```
+
+This is exactly what you had originally:
+
+* `greater<Node>` calls `a > b` → `a.f > b.f`.
+* That orders the heap so that **smaller** `f` is at the top.
+
+---
+
+### TL;DR
+
+* **If you choose to overload `operator<`**, you **must** reverse the comparison inside (use `f > o.f`), because the default priority queue treats `operator<` in a max-heap sense.
+* **If you overload `operator>`** (with the natural `return f > o.f;`), then use `greater<Node>` as the comparator, and you get a min-heap without any trick reversal.
+
+There’s no magic rule like “always keep the `>` inside”; the key is:
+
+> **operator name** + **body’s comparison** → combined produce the ordering you want.
+
+—so pick whichever style (`operator<` reverse or natural `operator>` + `greater<>`) feels clearest to you.
+
+
+---
+
+# declare lambda function and pass into priority_queue command
+
+Yes—you don’t have to overload `operator>`.  Here are two common alternatives:
+
+---
+
+### 1) Define a separate comparator struct
+
+```cpp
+struct NodeCmp {
+    // return true if a is lower priority than b,
+    // i.e. we want the smaller f to be on top
+    bool operator()(const Node &a, const Node &b) const {
+        return a.f > b.f;
+    }
+};
+
+// …
+
+// now use it in your priority_queue
+priority_queue<
+    Node,
+    vector<Node>,
+    NodeCmp
+> open;
+```
+
+This way all your `Node` needs is the public `f` field—no operator overload.
+
+---
+
+### 2) Pass a lambda directly
+
+```cpp
+// 1) write your lambda
+auto cmp = [](const Node &a, const Node &b) {
+    return a.f > b.f;
+};
+
+// 2) use decltype(cmp) as the comparator type, and pass cmp into the constructor
+priority_queue<
+    Node,
+    vector<Node>,
+    decltype(cmp)
+> open(cmp);
+```
+
+Again, no need to touch `Node` itself.
+
+---
+
+#### Bonus: flip `operator<` instead
+
+If you prefer using the default `priority_queue<T>` (which does a max-heap via `operator<`), you can overload `operator<` in `Node` so that
+
+```cpp
+bool operator<(const Node &o) const {
+    // reverse the logic: smaller f means “larger” in terms of max-heap
+    return f > o.f;
+}
+```
+
+Then you can simply write:
+
+```cpp
+priority_queue<Node> open;
+```
+
+and `open.top()` will be the `Node` with the **smallest** `f`.
+
+---
+
+All of these achieve the same effect—choosing the node with minimal `f` first—without needing a `bool operator>(…)` inside `Node`.
+
